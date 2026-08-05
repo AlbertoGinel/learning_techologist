@@ -15,12 +15,12 @@
 	--black: #000000;
 	--white: #ffffff;
 
-	--bg: var(--white);
+	--bg: #f4f2ef;
 	--card: var(--white);
 	--ink: var(--black);
 	--ink-soft: #6e6e6e;
 	--muted: #6e6e6e;
-	--border: #e5e3df;
+	--border: #e4e2de;
 
 	--good: #1f7a5a;
 	--good-soft: rgba(31, 122, 90, 0.12);
@@ -32,6 +32,8 @@
 	--radius-lg: 20px;
 	--radius-md: 14px;
 	--radius-sm: 10px;
+
+	--shadow-sm: 0 2px 6px rgba(30, 24, 12, 0.04), 0 8px 20px rgba(30, 24, 12, 0.05);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -49,6 +51,8 @@
 		--warn: #f2a340;
 		--warn-soft: rgba(242, 163, 64, 0.16);
 		--gold-soft: rgba(232, 205, 162, 0.18);
+
+		--shadow-sm: none;
 	}
 }
 
@@ -123,6 +127,7 @@ h1 {
 	border: 1px solid var(--border);
 	border-radius: var(--radius-md);
 	padding: 8px;
+	box-shadow: var(--shadow-sm);
 }
 
 .card-title {

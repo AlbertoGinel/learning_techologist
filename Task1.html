@@ -17,11 +17,12 @@
     --black:#000000;
     --white:#ffffff;
 
-    --bg: var(--white);
+    --bg: #f4f2ef;
     --card: var(--white);
     --ink: var(--black);
     --muted: #6e6e6e;
-    --border: #e5e3df;
+    --border: #e4e2de;
+    --shadow-sm: 0 2px 6px rgba(30, 24, 12, 0.04), 0 8px 20px rgba(30, 24, 12, 0.05);
   }
   @media (prefers-color-scheme: dark){
     :root{
@@ -30,6 +31,7 @@
       --ink: var(--white);
       --muted: #b9b9b9;
       --border: #4d4d4d;
+      --shadow-sm: none;
     }
   }
   *{ box-sizing: border-box; }
@@ -90,6 +92,7 @@
     font-size: 1.1rem;
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     color: var(--ink);
+    box-shadow: var(--shadow-sm);
   }
 
   hr.divider{
@@ -114,6 +117,7 @@
     border-radius: 14px;
     padding: 26px 26px 8px;
     margin: 28px 0 8px;
+    box-shadow: var(--shadow-sm);
   }
   .takeaways h2{
     font-size: 1.15rem;
@@ -204,6 +208,7 @@
     border: 1px solid var(--border);
     border-radius: 10px;
     padding: 16px 18px;
+    box-shadow: var(--shadow-sm);
   }
   @media (prefers-color-scheme: dark){
     .exercise-list li{ color: var(--muted); }
@@ -284,6 +289,7 @@
     padding: 20px 22px;
     color: var(--ink);
     margin: 0 0 44px;
+    box-shadow: var(--shadow-sm);
   }
 
   /* ===================================================================
@@ -751,7 +757,6 @@
   <section class="lesson-section">
     <p class="key-idea"><strong>The key idea:</strong> Memory fades fast at first and then more and more slowly. Reviewing right around the moment you would otherwise forget, and spacing each subsequent review further apart, is what turns a fragile first impression into an iron memory.</p>
 
-    <hr class="divider" />
 
     <div class="takeaways">
       <h2>Key takeaways</h2>
