@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Predicting the Next Token</title>
+<style>
+  :root{
+    --red:#FE011C;
+    --darkred:#C60B0B;
+    --gray:#303030;
+    --gold:#E8CDA2;
+    --black:#000000;
+    --white:#ffffff;
+
+    --bg: var(--white);
+    --card: var(--white);
+    --ink: var(--black);
+    --muted: #6e6e6e;
+    --border: #e5e3df;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg: var(--black);
+      --card: #3c3c3c;
+      --ink: var(--white);
+      --muted: #b9b9b9;
+      --border: #4d4d4d;
+    }
+  }
+  *{ box-sizing: border-box; }
+  html{ scroll-behavior: smooth; }
+  body{
+    margin:0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.7;
+  }
+
+  .page{
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 64px 32px 96px;
+  }
+
+  h1{
+    font-size: 2.3rem;
+    line-height: 1.25;
+    margin: 0 0 8px;
+    letter-spacing: -0.01em;
+    color: var(--ink);
+  }
+  .kicker{
+    color: var(--red);
+    font-size: .85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .1em;
+    margin: 0 0 14px;
+  }
+  .lede{
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0 0 28px;
+    color: var(--ink);
+  }
+
+  p{
+    font-size: 1.08rem;
+    color: var(--gray);
+    margin: 0 0 22px;
+  }
+  @media (prefers-color-scheme: dark){
+    p{ color: var(--white); }
+  }
+  p strong{ font-weight: 700; color: var(--ink); }
+
+  .arrow-callout{
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-left: 5px solid var(--red);
+    border-radius: 10px;
+    padding: 18px 22px;
+    margin: 0 0 28px;
+    font-size: 1.1rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    color: var(--ink);
+  }
+
+  hr.divider{
+    border: none;
+    border-top: 2px solid var(--gold);
+    margin: 52px 0;
+    max-width: 120px;
+    margin-left: 0;
+  }
+
+  .embed-block{ margin: 36px 0 40px; }
+  .embed-frame{
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 4px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.08);
+  }
+
+  .takeaways{
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 26px 26px 8px;
+    margin: 28px 0 8px;
+  }
+  .takeaways h2{
+    font-size: 1.15rem;
+    margin: 0 0 16px;
+    color: var(--ink);
+  }
+  .takeaways ul{
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .takeaways li{
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    font-size: 1rem;
+    color: var(--gray);
+    margin-bottom: 18px;
+  }
+  @media (prefers-color-scheme: dark){
+    .takeaways li{ color: var(--muted); }
+  }
+  .takeaways li .check{
+    color: var(--red);
+    font-weight: 700;
+    flex: 0 0 auto;
+  }
+
+  /* ===================================================================
+     LESSON STRUCTURE  — header / sections / exercises / key idea
+     =================================================================== */
+  .lesson-head{ margin-bottom: 8px; }
+
+  .lesson-section{
+    margin: 60px 0 0;
+    padding-top: 40px;
+    border-top: 1px solid var(--border);
+  }
+  .lesson-section:first-of-type{
+    margin-top: 44px;
+    padding-top: 0;
+    border-top: none;
+  }
+
+  h2{
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    font-size: 1.5rem;
+    margin: 0 0 22px;
+    color: var(--ink);
+  }
+  h2 .sec-no{
+    font-size: .82rem;
+    font-weight: 700;
+    color: var(--red);
+    letter-spacing: .05em;
+  }
+  .takeaways h2{ display: block; }
+
+  .try-it{ margin: 30px 0; max-width: 1000px; }
+  .try-label{
+    font-size: .78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .09em;
+    color: var(--muted);
+    margin: 0 0 10px;
+  }
+
+  .exercise-list{
+    list-style: none;
+    counter-reset: step;
+    margin: 28px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .exercise-list li{
+    counter-increment: step;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    font-size: 1.05rem;
+    color: var(--gray);
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+  }
+  @media (prefers-color-scheme: dark){
+    .exercise-list li{ color: var(--muted); }
+  }
+  .exercise-list li::before{
+    content: counter(step);
+    flex: 0 0 auto;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--red);
+    color: var(--white);
+    font-size: .8rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .exercise-list li.exercise-toggle{
+    flex-direction: row;
+    align-items: flex-start;
+  }
+  .exercise-toggle .exercise-body{
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .exercise-toggle .exercise-reveal-row{
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 10px;
+  }
+  .exercise-toggle .exercise-toggle-btn{
+    -webkit-appearance: none;
+    appearance: none;
+    border: none;
+    background: none;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--red);
+    font-size: .85rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .exercise-toggle .exercise-toggle-btn:hover{ color: var(--darkred); text-decoration: underline; }
+  .exercise-toggle .exercise-toggle-btn .chevron{
+    width: 7px;
+    height: 7px;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: rotate(45deg);
+    margin-top: -3px;
+  }
+  .exercise-toggle.open .exercise-reveal-row{ display: none; }
+  .exercise-toggle .exercise-solution{
+    display: none;
+    margin-top: 12px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--ink);
+  }
+  .exercise-toggle.open .exercise-solution{ display: block; }
+  .exercise-solution p{ margin: 0 0 10px; }
+  .exercise-solution p:last-child{ margin-bottom: 0; }
+  .exercise-solution .ex-note{
+    font-weight: 400;
+    color: var(--muted);
+    font-size: .88em;
+  }
+
+  .temp-pink{ color: #d936e2; }
+  .temp-blue{ color: #3636e2; }
+  .temp-red{ color: #e23636; }
+
+  .reflect-item{ margin-top: 16px; width: 100%; }
+  .reflect-prompt{
+    margin: 0 0 8px;
+    color: var(--ink);
+    font-size: .95rem;
+    font-weight: 600;
+    line-height: 1.5;
+  }
+  .reflect-row{
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+  }
+  .reflect-input,
+  .reflect-output{
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--ink);
+    font: inherit;
+    font-size: .95rem;
+    line-height: 1.5;
+  }
+  .reflect-input{ min-height: 2.6rem; resize: vertical; }
+  .reflect-output{ white-space: pre-wrap; }
+  .reflect-row .reflect-toggle{
+    flex: 0 0 auto;
+    white-space: nowrap;
+    -webkit-appearance: none;
+    appearance: none;
+    border: 1px solid var(--border);
+    background: none;
+    color: var(--red);
+    border-radius: 8px;
+    padding: 9px 14px;
+    font-size: .85rem;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .reflect-row .reflect-toggle:hover{ border-color: var(--red); color: var(--darkred); }
+  @media (max-width: 640px){
+    .reflect-row{ flex-direction: column; align-items: stretch; }
+  }
+
+  .key-idea{
+    font-size: 1.15rem;
+    font-weight: 600;
+    line-height: 1.6;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-left: 5px solid var(--gold);
+    border-radius: 10px;
+    padding: 20px 22px;
+    color: var(--ink);
+    margin: 0 0 44px;
+  }
+
+  .soft-callout{
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--gold);
+    border-radius: 10px;
+    padding: 18px 22px 4px;
+    margin: 0 0 28px;
+  }
+  .soft-callout p{
+    font-size: 1.05rem;
+    font-weight: 500;
+    line-height: 1.6;
+    color: var(--ink);
+    margin: 0 0 14px;
+  }
+  .soft-callout strong{ font-weight: 700; }
+
+  /* ===================================================================
+     TOK-ANIM  — fork animation (self-contained, scoped)
+     =================================================================== */
+  .tok-anim{
+    display: flex;
+    justify-content: center;
+    background: var(--white);
+    border: 3px solid var(--black);
+    border-radius: 14px;
+    padding: 24px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.08);
+  }
+  .tok-anim svg{
+    display: block;
+    width: 640px;
+    max-width: 100%;
+    height: auto;
+  }
+  .tok-anim text{
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-weight: 700;
+  }
+  .tok-anim .main   { font-size: 34px; fill: var(--black); }
+  .tok-anim .branch { font-size: 28px; fill: var(--black); }
+  .tok-anim line{
+    stroke: var(--black);
+    stroke-width: 3;
+    stroke-linecap: round;
+  }
+
+  .tok-anim #fork1 { opacity: 0; animation: fork1Visible 10s infinite; }
+  @keyframes fork1Visible {
+    0%     { opacity: 0; }
+    6.67%  { opacity: 0; }
+    8.33%  { opacity: 1; }
+    23.33% { opacity: 1; }
+    25%    { opacity: 0; }
+    100%   { opacity: 0; }
+  }
+  .tok-anim #lineBlue1, .tok-anim #wordBlue1 { animation: color1 10s infinite; }
+  @keyframes color1 {
+    0%     { stroke: var(--black); fill: var(--black); }
+    15%    { stroke: var(--black); fill: var(--black); }
+    15.33% { stroke: var(--red); fill: var(--red); }
+    25%    { stroke: var(--red); fill: var(--red); }
+    100%   { stroke: var(--black); fill: var(--black); }
+  }
+  .tok-anim #appended1 { opacity: 0; animation: appended1Visible 10s infinite; }
+  @keyframes appended1Visible {
+    0%     { opacity: 0; }
+    23.33% { opacity: 0; }
+    25%    { opacity: 1; }
+    100%   { opacity: 1; }
+  }
+
+  .tok-anim #fork2 { opacity: 0; animation: fork2Visible 10s infinite; }
+  @keyframes fork2Visible {
+    0%     { opacity: 0; }
+    33.33% { opacity: 0; }
+    40%    { opacity: 0; }
+    41.67% { opacity: 1; }
+    56.67% { opacity: 1; }
+    58.33% { opacity: 0; }
+    100%   { opacity: 0; }
+  }
+  .tok-anim #lineAnd2, .tok-anim #wordAnd2 { animation: color2 10s infinite; }
+  @keyframes color2 {
+    0%     { stroke: var(--black); fill: var(--black); }
+    48.33% { stroke: var(--black); fill: var(--black); }
+    48.67% { stroke: var(--red); fill: var(--red); }
+    58.33% { stroke: var(--red); fill: var(--red); }
+    100%   { stroke: var(--black); fill: var(--black); }
+  }
+  .tok-anim #appended2 { opacity: 0; animation: appended2Visible 10s infinite; }
+  @keyframes appended2Visible {
+    0%     { opacity: 0; }
+    56.67% { opacity: 0; }
+    58.33% { opacity: 1; }
+    100%   { opacity: 1; }
+  }
+
+  .tok-anim #fork3 { opacity: 0; animation: fork3Visible 10s infinite; }
+  @keyframes fork3Visible {
+    0%     { opacity: 0; }
+    66.67% { opacity: 0; }
+    73.33% { opacity: 0; }
+    75%    { opacity: 1; }
+    90%    { opacity: 1; }
+    91.67% { opacity: 0; }
+    100%   { opacity: 0; }
+  }
+  .tok-anim #lineThe3, .tok-anim #wordThe3 { animation: color3 10s infinite; }
+  @keyframes color3 {
+    0%     { stroke: var(--black); fill: var(--black); }
+    81.67% { stroke: var(--black); fill: var(--black); }
+    82%    { stroke: var(--red); fill: var(--red); }
+    91.67% { stroke: var(--red); fill: var(--red); }
+    100%   { stroke: var(--black); fill: var(--black); }
+  }
+  .tok-anim #appended3 { opacity: 0; animation: appended3Visible 10s infinite; }
+  @keyframes appended3Visible {
+    0%     { opacity: 0; }
+    90%    { opacity: 0; }
+    91.67% { opacity: 1; }
+    100%   { opacity: 1; }
+  }
+
+  /* ===================================================================
+     TOK-SIM  — next-token simulator (self-contained, scoped)
+     =================================================================== */
+  .tok-sim{
+    --sim-bg:#f4f2ef;
+    --sim-card:#ffffff;
+    --sim-ink:#303030;
+    --sim-muted:#767676;
+    --sim-accent:#FE011C;
+    --sim-accent-ink:#ffffff;
+    --sim-dec-bg:#ececec;
+    --sim-dec-ink:#a3a3a3;
+    --sim-border:#e4e2de;
+    --sim-good:#C60B0B;
+
+    background: var(--sim-bg);
+    color: var(--sim-ink);
+    border-radius: 12px;
+    padding: 28px 24px 34px;
+  }
+  @media (prefers-color-scheme: dark){
+    .tok-sim{
+      --sim-bg:#262626;
+      --sim-card:#333333;
+      --sim-ink:#f2f2f2;
+      --sim-muted:#b0b0b0;
+      --sim-accent:#FE011C;
+      --sim-accent-ink:#ffffff;
+      --sim-dec-bg:#3a3a3a;
+      --sim-dec-ink:#6f6f6f;
+      --sim-border:#474747;
+      --sim-good:#ff6a6a;
+    }
+  }
+  .tok-sim *{ box-sizing: border-box; }
+  .tok-sim .sim-header{ text-align: center; margin-bottom: 22px; }
+  .tok-sim .sim-title{ font-size: 1.4rem; font-weight: 700; margin: 0; }
+
+  .tok-sim .layout{ display:flex; gap:28px; align-items:flex-start; }
+  .tok-sim .left{ flex:0 0 66%; top:24px; }
+  .tok-sim .right{ flex:0 0 33%; min-width:0; }
+  @media (max-width:720px){
+    .tok-sim .layout{ flex-direction:column; }
+    .tok-sim .left{ position:static; width:100%; flex:1 1 auto; }
+    .tok-sim .right{ width:100%; flex:1 1 auto; }
+  }
+
+  .tok-sim .sentence-box{
+    background: var(--sim-card);
+    border:1px solid var(--sim-border);
+    border-radius:14px;
+    padding:22px 20px;
+    min-height:220px;
+    display:flex;
+    align-items:flex-start;
+    align-content:flex-start;
+    flex-wrap:wrap;
+    gap:8px;
+    font-size:1.25rem;
+    line-height:1.5;
+  }
+  .tok-sim .sentence-box .placeholder{ color:var(--sim-muted); font-size:1rem; }
+  .tok-sim .token-chip{
+    background:var(--sim-dec-bg);
+    border-radius:8px;
+    padding:2px 8px;
+    display:inline-flex;
+    align-items:baseline;
+    gap:5px;
+  }
+  .tok-sim .token-chip .p{ font-size:.65rem; color:var(--sim-muted); font-variant-numeric:tabular-nums; }
+  .tok-sim .cursor{
+    display:inline-block; width:2px; height:1.2em; background:var(--sim-accent);
+    animation: simBlink 1s step-start infinite;
+  }
+  @keyframes simBlink{ 50%{ opacity:0; } }
+
+  .tok-sim .step-label{ font-size:.82rem; color:var(--sim-muted); }
+  .tok-sim .section-label{
+    display: block;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    font-weight: 700;
+    margin: 0 0 8px;
+  }
+  .tok-sim .left .section-label:not(:first-child){ margin-top: 18px; }
+  .tok-sim .reset-btn{
+    background:none; border:1px solid var(--sim-border); color:var(--sim-muted);
+    border-radius:8px; padding:6px 12px; font-size:.82rem; cursor:pointer;
+    font-family: inherit; margin-left:auto; flex:0 0 auto;
+  }
+  .tok-sim .reset-btn:hover{ border-color:var(--sim-accent); color:var(--sim-accent); }
+  .tok-sim .reset-btn:disabled{ opacity:.4; cursor:not-allowed; }
+  .tok-sim .reset-btn:disabled:hover{ border-color:var(--sim-border); color:var(--sim-muted); }
+
+  .tok-sim .legend{ display:flex; gap:16px; font-size:.75rem; color:var(--sim-muted); margin-bottom:14px; flex-wrap:wrap; }
+  .tok-sim .legend span{ display:inline-flex; align-items:center; gap:6px; }
+  .tok-sim .dot{ width:9px; height:9px; border-radius:50%; display:inline-block; }
+  .tok-sim .dot.sel{ background:var(--sim-accent); }
+  .tok-sim .dot.dec{ background:var(--sim-dec-ink); }
+
+  .tok-sim .temp-bar{
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+    background:var(--sim-card); border:1px solid var(--sim-border); border-radius:12px;
+    padding:12px 16px; margin-bottom:14px;
+  }
+  .tok-sim .temp-bar .temp-tag{ font-size:1rem; }
+  .tok-sim .temp-bar input[type=range]{ flex:1; min-width:120px; accent-color:var(--sim-accent); }
+  .tok-sim .temp-bar input[type=range]:disabled{ opacity:.4; cursor:not-allowed; }
+  .tok-sim .temp-value{ font-variant-numeric:tabular-nums; font-weight:700; color:var(--sim-accent); min-width:30px; }
+  .tok-sim .temp-hint{ font-size:.78rem; color:var(--sim-muted); flex:1 1 100%; }
+  @media (min-width:520px){ .tok-sim .temp-hint{ flex:0 0 auto; margin-left:auto; } }
+
+  .tok-sim .rand-btn{
+    width:100%; margin-bottom:12px; background:var(--sim-accent); color:var(--sim-accent-ink);
+    border:none; border-radius:10px; padding:11px 14px; font-size:.9rem; font-weight:600; cursor:pointer;
+    font-family: inherit;
+  }
+  .tok-sim .rand-btn:hover:not(:disabled){ background:var(--darkred); }
+  .tok-sim .rand-btn:disabled{ opacity:.6; cursor:default; }
+
+  .tok-sim .grid{ display:flex; flex-direction:column; gap:10px; width:100%; }
+
+  .tok-sim .opt{
+    position:relative; text-align:left; border-radius:12px;
+    border:1px solid var(--sim-border); background:var(--sim-card);
+    padding:12px 14px; cursor:pointer; overflow:hidden;
+    font-family:inherit; font-size:.98rem;
+    transition:transform .12s ease, border-color .12s ease;
+  }
+  .tok-sim .opt .bar{ position:absolute; left:0; bottom:0; top:0; background:var(--sim-accent); opacity:.14; z-index:0; }
+  .tok-sim .opt .row{ position:relative; z-index:1; display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .tok-sim .opt .txt{ font-weight:600; color:var(--sim-ink); }
+  .tok-sim .opt .pct{ font-variant-numeric:tabular-nums; color:var(--sim-accent); font-weight:600; font-size:.85rem; }
+  .tok-sim .opt:not(:disabled):hover{ transform:translateY(-1px); border-color:var(--sim-accent); }
+  .tok-sim .opt:not(:disabled):active{ transform:translateY(0); }
+
+  .tok-sim .opt.dec{ cursor:not-allowed; background:var(--sim-dec-bg); }
+  .tok-sim .opt.dec .bar{ background:var(--sim-dec-ink); opacity:.18; }
+  .tok-sim .opt.dec .txt{ color:var(--sim-dec-ink); font-weight:500; }
+  .tok-sim .opt.dec .pct{ color:var(--sim-dec-ink); }
+
+  @keyframes simPulse{ 0%{transform:scale(1);} 50%{transform:scale(1.02);} 100%{transform:scale(1);} }
+  .tok-sim .opt.flash{ border-color:var(--sim-accent); animation:simPulse .45s ease; }
+
+  .tok-sim .done-panel{
+    text-align:center; background:var(--sim-card); border:1px solid var(--sim-border);
+    border-radius:14px; padding:26px 20px;
+  }
+  .tok-sim .done-panel .check{ color:var(--sim-good); font-weight:700; margin-bottom:8px; }
+  .tok-sim .done-panel .final{ font-size:1.3rem; margin:6px 0 18px; }
+  .tok-sim .again-btn{
+    background:var(--sim-accent); color:var(--sim-accent-ink); border:none;
+    border-radius:10px; padding:10px 22px; font-size:.95rem; cursor:pointer; font-weight:600;
+    font-family: inherit;
+  }
+  .tok-sim .again-btn:hover{ background:var(--darkred); }
+
+  .tok-sim .sim-footer{ text-align:center; margin-top:20px; font-size:.72rem; color:var(--sim-muted); }
+</style>
+</head>
+<body>
+
+<article class="page">
+
+  <header class="lesson-head">
+    <p class="kicker">Language Models</p>
+    <h1>Predicting the Next Token</h1>
+    <p class="lede">How does an artificial intelligence model think?</p>
+    <p>We often ask ourselves: how is it possible that AI answers my questions? Do computers think like us? In my opinion, they think very differently from us. Basically, they think by brute force, they generate thousands of possibilities at once and choose the one that seems best, but they don't know why.</p>
+    <p>In this lesson, we're going to explore one of the many steps a model takes to generate its responses, specifically, how it chooses the answer.</p>
+  </header>
+
+  <section class="lesson-section">
+    <h2><span class="sec-no">01</span>Tokens, not words</h2>
+    <p>When you type a prompt and press enter, a language model does not "look up" an answer or understand your question the way a person does. It does something much simpler, repeated very fast: it predicts the next piece of text, one piece at a time.</p>
+    <p>First, the model breaks your text into <strong>tokens</strong>, small chunks that are often a word, part of a word, or a punctuation mark. The word "cat" might be one token; a longer word like "unbelievable" might be split into several ("un", "believ", "able"). Spaces and punctuation count too. The model only ever sees tokens, never letters or "meaning" the way we do.</p>
+    <p>Then it does one thing over and over: given all the tokens so far, guess the most likely next token. It adds that token to the end, then feeds the whole thing back in and guesses again.</p>
+
+    <div class="arrow-callout">
+      "The sky is" &rarr; "blue".<br />
+      "The sky is blue and" &rarr; "the".
+    </div>
+
+    <p>One token at a time, the response builds up.</p>
+
+    <div class="try-it">
+      <p class="try-label">See it in action</p>
+      <div class="tok-anim">
+        <svg viewBox="0 0 660 280" xmlns="http://www.w3.org/2000/svg">
+          <text x="50"  y="150" class="main">The sky is</text>
+          <text id="appended1" x="240" y="150" class="main">&#160;blue</text>
+          <text id="appended2" x="335" y="150" class="main">&#160;and</text>
+          <text id="appended3" x="411" y="150" class="main">&#160;the</text>
+
+          <g id="fork1">
+            <line x1="240" y1="140" x2="330" y2="80" />
+            <line x1="240" y1="140" x2="330" y2="145" />
+            <line x1="240" y1="140" x2="330" y2="205" />
+            <text id="wordBlue1" x="340" y="90"  class="branch">blue</text>
+            <text                x="340" y="155" class="branch">the</text>
+            <text                x="340" y="215" class="branch">above</text>
+            <line id="lineBlue1" x1="240" y1="140" x2="330" y2="80" />
+          </g>
+
+          <g id="fork2">
+            <line x1="340" y1="140" x2="430" y2="80" />
+            <line x1="340" y1="140" x2="430" y2="145" />
+            <line x1="340" y1="140" x2="430" y2="205" />
+            <text id="wordAnd2" x="440" y="90"  class="branch">and</text>
+            <text                x="440" y="155" class="branch">when</text>
+            <text                x="440" y="215" class="branch">because</text>
+            <line id="lineAnd2" x1="340" y1="140" x2="430" y2="80" />
+          </g>
+
+          <g id="fork3">
+            <line x1="420" y1="140" x2="510" y2="80" />
+            <line x1="420" y1="140" x2="510" y2="145" />
+            <line x1="420" y1="140" x2="510" y2="205" />
+            <text id="wordThe3" x="520" y="90"  class="branch">the</text>
+            <text                x="520" y="155" class="branch">I</text>
+            <text                x="520" y="215" class="branch">you</text>
+            <line id="lineThe3" x1="420" y1="140" x2="510" y2="80" />
+          </g>
+        </svg>
+      </div>
+    </div>
+  </section>
+
+  <section class="lesson-section">
+    <h2><span class="sec-no">02</span>Probabilities and temperature</h2>
+    <p>The model isn't choosing from a fixed answer. For each step it produces a ranked list of possible next tokens with probabilities, maybe "blue" 71%, "clear" 12%, "grey" 6%, and so on. Usually it leans toward the likely ones, but it doesn't always pick the very top one. A setting often called <strong>temperature</strong> controls how adventurous it is: low temperature almost always takes the safest, highest-probability token; higher temperature lets it reach for less likely ones. That is why the exact same prompt can produce different answers on different runs, there is a controlled amount of randomness in which token gets picked.</p>
+
+    <p class="lede">Next is a simulator that shows how an AI model chooses the next token.</p>
+
+    <div class="soft-callout">
+      <p>Each time you press <strong>🎲 Roll for next token</strong>, the system will choose one of the tokens according to its probability. You can also override the chances by selecting one of the upper tokens manually.</p>
+      <p>Each token has a probability of being chosen, and each choice generates a new ranked list.</p>
+      <p>Observe the chosen tokens, they retain the probability they had in the ranked list.</p>
+    </div>
+
+    <div class="try-it">
+      <div class="embed-frame">
+      <div class="tok-sim" id="tokSim">
+        <div class="sim-header">
+          <div class="sim-title">Next-Token Simulator</div>
+        </div>
+
+        <div class="layout">
+          <div class="left">
+            <div class="step-label section-label">Temperature slider</div>
+            <div class="temp-bar">
+              <span class="temp-tag">🌡</span>
+              <input type="range" id="simTempRange" min="0.1" max="2" step="0.1" value="1" autocomplete="off">
+              <span class="temp-value" id="simTempValue">1.0</span>
+              <span class="temp-hint" id="simTempHint"></span>
+              <button class="reset-btn" id="simResetBtn">↺ Restart</button>
+            </div>
+
+            <div class="step-label section-label">Model output</div>
+            <div class="sentence-box" id="simSentenceBox">
+              <span class="placeholder">The generated sentence will appear here…</span>
+            </div>
+          </div>
+          <div class="right">
+            <div class="step-label section-label">Ranked list of tokens</div>
+            <div id="simRight"></div>
+          </div>
+        </div>
+
+      </div>
+      </div>
+    </div>
+
+    <ol class="exercise-list">
+      <li class="exercise-toggle">
+        <div class="exercise-body">
+          <div class="exercise-q">Press roll to choose words and observe the phrase. Try it first with <strong class="temp-pink">temperature 1</strong> and generate several phrases. Do they make sense? Are they varied?</div>
+          <div class="exercise-reveal-row">
+            <button class="exercise-toggle-btn" type="button" aria-expanded="false">Show answer <span class="chevron"></span></button>
+          </div>
+          <div class="exercise-solution">
+            <p>At temperature 1, most of the generated phrases make sense. You can also override the probability and force a token, for example picking "walked" even though another token was more likely.</p>
+            <p class="temp-pink">I walked to the store today.<br>
+            We walked to the store again.<br>
+            You made some sandwich. <span class="ex-note">(some minor grammar mistakes)</span></p>
+          </div>
+        </div>
+      </li>
+      <li class="exercise-toggle">
+        <div class="exercise-body">
+          <div class="exercise-q">Now change the <strong class="temp-blue">temperature to 0.1</strong>. This will make the model exaggerate the value of the first option and take no risks, always giving the phrase with the same tokens. What phrase did you get? What probabilities did the chosen tokens have?</div>
+          <div class="exercise-reveal-row">
+            <button class="exercise-toggle-btn" type="button" aria-expanded="false">Show answer <span class="chevron"></span></button>
+          </div>
+          <div class="exercise-solution">
+            <p>You probably got the same phrase every time at such a low temperature, right? With every token pushed close to 100%:</p>
+            <p class="temp-blue">I walked to the park.</p>
+          </div>
+        </div>
+      </li>
+      <li class="exercise-toggle">
+        <div class="exercise-body">
+          <div class="exercise-q">Now change the <strong class="temp-red">temperature to 2</strong>. This will make the probability values more evenly spread and increase the chance of a gibberish phrase. Try a couple of times to generate a phrase that doesn't make sense. Write them down and observe which values were chosen.</div>
+          <div class="exercise-reveal-row">
+            <button class="exercise-toggle-btn" type="button" aria-expanded="false">Show answer <span class="chevron"></span></button>
+          </div>
+          <div class="exercise-solution">
+            <p>After generating several outputs at temperature 2, you'll likely see gibberish sentences, such as:</p>
+            <p class="temp-red">"I walked to Wednesday spaghetti." <span class="ex-note"> highest token at 20%</span><br>
+            "You walked broccoli the park." <span class="ex-note"> highest token at 20%</span></p>
+          </div>
+          <div class="reflect-item">
+            <p class="reflect-prompt">Write your temperature 2.0 gibberish sentences.</p>
+            <div class="reflect-row">
+              <textarea class="reflect-input" rows="1" placeholder="Gibberish sentences"></textarea>
+              <p class="reflect-output" hidden></p>
+              <button class="reflect-toggle" type="button">Save reflection</button>
+            </div>
+          </div>
+        </div>
+      </li>
+    </ol>
+  </section>
+
+  <section class="lesson-section">
+    <p class="key-idea"><strong>The key idea:</strong> a language model generates text by repeatedly predicting the next token from a list of probabilities, it doesn't retrieve answers, it builds them one guess at a time.</p>
+
+    <div class="takeaways">
+      <h2>Key takeaways</h2>
+      <ul>
+        <li><span class="check">&#10003;</span><span>Text is broken into tokens, not words or letters, and the model only sees tokens.</span></li>
+        <li><span class="check">&#10003;</span><span>The model works left to right, one token at a time, always predicting what comes next.</span></li>
+        <li><span class="check">&#10003;</span><span>Each prediction is a probability distribution over many possible next tokens, not a single fixed answer.</span></li>
+        <li><span class="check">&#10003;</span><span>Because the pick involves some randomness (temperature), the same prompt can give different results.</span></li>
+      </ul>
+    </div>
+  </section>
+
+</article>
+
+<script>
+(function(){
+  var tree = {
+    n_root: { options: [
+      { text:'I', weight:38, type:'sel', next:'n_verb' },
+      { text:'We', weight:24, type:'sel', next:'n_verb' },
+      { text:'You', weight:23, type:'sel', next:'n_verb' },
+      { text:'She', weight:5, type:'dec' },
+      { text:'They', weight:5, type:'dec' },
+      { text:'Bicycle', weight:2, type:'wild', next:'n_verb' },
+    ]},
+    n_verb: { options: [
+      { text:'walked', weight:41, type:'sel', next:'n_prep' },
+      { text:'found', weight:26, type:'sel', next:'n_det_found' },
+      { text:'made', weight:18, type:'sel', next:'n_det_made' },
+      { text:'saw', weight:5, type:'dec' },
+      { text:'took', weight:5, type:'dec' },
+      { text:'kazoo', weight:2, type:'wild', next:'n_prep' },
+    ]},
+    n_prep: { options: [
+      { text:'to', weight:36, type:'sel', next:'n_det' },
+      { text:'through', weight:29, type:'sel', next:'n_det' },
+      { text:'along', weight:20, type:'sel', next:'n_det' },
+      { text:'into', weight:5, type:'dec' },
+      { text:'around', weight:5, type:'dec' },
+      { text:'broccoli', weight:2, type:'wild', next:'n_det' },
+    ]},
+    n_det: { options: [
+      { text:'the', weight:44, type:'sel', next:'n_noun_walk' },
+      { text:'a', weight:31, type:'sel', next:'n_noun_walk' },
+      { text:'my', weight:10, type:'sel', next:'n_noun_walk' },
+      { text:'that', weight:5, type:'dec' },
+      { text:'our', weight:5, type:'dec' },
+      { text:'Wednesday', weight:2, type:'wild', next:'n_noun_walk' },
+    ]},
+    n_noun_walk: { options: [
+      { text:'park.', weight:34, type:'sel', terminal:true },
+      { text:'store', weight:27, type:'sel', next:'n_end_walk' },
+      { text:'café', weight:24, type:'sel', next:'n_end_walk' },
+      { text:'beach', weight:5, type:'dec' },
+      { text:'market', weight:5, type:'dec' },
+      { text:'spaghetti.', weight:2, type:'wild' },
+    ]},
+    n_end_walk: { options: [
+      { text:'today.', weight:40, type:'sel', terminal:true },
+      { text:'again.', weight:27, type:'sel', terminal:true },
+      { text:'nearby.', weight:18, type:'sel', terminal:true },
+      { text:'alone.', weight:5, type:'dec' },
+      { text:'briefly.', weight:5, type:'dec' },
+      { text:'trombone.', weight:2, type:'wild' },
+    ]},
+    n_det_found: { options: [
+      { text:'a', weight:37, type:'sel', next:'n_noun_found' },
+      { text:'the', weight:28, type:'sel', next:'n_noun_found' },
+      { text:'some', weight:20, type:'sel', next:'n_noun_found' },
+      { text:'his', weight:5, type:'dec' },
+      { text:'her', weight:5, type:'dec' },
+      { text:'moose', weight:2, type:'wild', next:'n_noun_found' },
+    ]},
+    n_noun_found: { options: [
+      { text:'book.', weight:33, type:'sel', terminal:true },
+      { text:'dog', weight:27, type:'sel', next:'n_end_found' },
+      { text:'letter', weight:25, type:'sel', next:'n_end_found' },
+      { text:'key', weight:5, type:'dec' },
+      { text:'wallet', weight:5, type:'dec' },
+      { text:'asteroid.', weight:2, type:'wild' },
+    ]},
+    n_end_found: { options: [
+      { text:'outside.', weight:40, type:'sel', terminal:true },
+      { text:'yesterday.', weight:27, type:'sel', terminal:true },
+      { text:'nearby.', weight:18, type:'sel', terminal:true },
+      { text:'inside.', weight:5, type:'dec' },
+      { text:'earlier.', weight:5, type:'dec' },
+      { text:'giraffe.', weight:2, type:'wild' },
+    ]},
+    n_det_made: { options: [
+      { text:'a', weight:36, type:'sel', next:'n_noun_made' },
+      { text:'some', weight:29, type:'sel', next:'n_noun_made' },
+      { text:'the', weight:20, type:'sel', next:'n_noun_made' },
+      { text:'his', weight:5, type:'dec' },
+      { text:'her', weight:5, type:'dec' },
+      { text:'pancake', weight:2, type:'wild', next:'n_noun_made' },
+    ]},
+    n_noun_made: { options: [
+      { text:'sandwich.', weight:35, type:'sel', terminal:true },
+      { text:'mistake.', weight:28, type:'sel', terminal:true },
+      { text:'promise', weight:22, type:'sel', next:'n_end_made' },
+      { text:'decision.', weight:5, type:'dec' },
+      { text:'call.', weight:5, type:'dec' },
+      { text:'thunder.', weight:2, type:'wild' },
+    ]},
+    n_end_made: { options: [
+      { text:'today.', weight:39, type:'sel', terminal:true },
+      { text:'quietly.', weight:27, type:'sel', terminal:true },
+      { text:'again.', weight:19, type:'sel', terminal:true },
+      { text:'eventually.', weight:5, type:'dec' },
+      { text:'instead.', weight:5, type:'dec' },
+      { text:'lighthouse.', weight:2, type:'wild' },
+    ]},
+  };
+
+  var state = {
+    currentNodeId: 'n_root',
+    sentence: [],
+    temperature: 1,
+    rolling: false,
+    flashKey: null,
+  };
+
+  var els = {
+    root: document.getElementById('tokSim'),
+    range: document.getElementById('simTempRange'),
+    tempValue: document.getElementById('simTempValue'),
+    tempHint: document.getElementById('simTempHint'),
+    resetBtn: document.getElementById('simResetBtn'),
+    sentenceBox: document.getElementById('simSentenceBox'),
+    right: document.getElementById('simRight'),
+  };
+
+  function effectiveTemperature(){
+    var minT=0.1, maxT=2, minEff=0.02, maxEff=6;
+    var frac = (state.temperature - minT) / (maxT - minT);
+    return minEff * Math.pow(maxEff / minEff, frac);
+  }
+
+  function currentOptions(){
+    if (!state.currentNodeId) return [];
+    var opts = tree[state.currentNodeId].options;
+    var effT = effectiveTemperature();
+    var scaled = opts.map(function(o){ return Math.pow(o.weight, 1 / effT); });
+    var total = scaled.reduce(function(a,b){ return a+b; }, 0);
+    return opts
+      .map(function(o, i){
+        var copy = {};
+        for (var k in o) copy[k] = o[k];
+        copy.pct = Math.round((scaled[i] / total) * 1000) / 10;
+        return copy;
+      })
+      .sort(function(a,b){ return b.pct - a.pct; });
+  }
+
+  function isComplete(){
+    return state.currentNodeId === null && state.sentence.length > 0;
+  }
+
+  function sentenceText(){
+    return state.sentence.map(function(t){ return t.text; }).join(' ');
+  }
+
+  function accentColor(){
+    var t = Math.min(2, Math.max(0.1, state.temperature));
+    var frac = (t - 0.1) / 1.9;
+    var hue = 240 + frac * 120;
+    return 'hsl(' + hue + ', 75%, 55%)';
+  }
+
+  function escapeHtml(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[c];
+    });
+  }
+
+  function pick(option){
+    if (option.type !== 'sel' && option.type !== 'wild') return;
+    state.sentence.push({ text: option.text, prob: option.pct });
+    if (option.terminal || !option.next || state.sentence.length >= 6){
+      state.currentNodeId = null;
+    } else {
+      state.currentNodeId = option.next;
+    }
+    render();
+  }
+
+  function randomize(){
+    if (state.rolling || isComplete()) return;
+    var opts = currentOptions().filter(function(o){ return o.type === 'sel' || o.type === 'wild'; });
+    var total = opts.reduce(function(sum,o){ return sum + o.pct; }, 0);
+    var r = Math.random() * total;
+    var chosen = opts[opts.length - 1];
+    for (var i=0; i<opts.length; i++){
+      if (r <= opts[i].pct){ chosen = opts[i]; break; }
+      r -= opts[i].pct;
+    }
+    state.rolling = true;
+    state.flashKey = chosen.text;
+    render();
+    setTimeout(function(){
+      pick(chosen);
+      state.flashKey = null;
+      state.rolling = false;
+      render();
+    }, 450);
+  }
+
+  function reset(){
+    state.sentence = [];
+    state.currentNodeId = 'n_root';
+    state.rolling = false;
+    state.flashKey = null;
+    state.temperature = 1;
+    els.range.value = 1;
+    render();
+  }
+
+  function render(){
+    els.root.style.setProperty('--sim-accent', accentColor());
+    els.tempValue.textContent = state.temperature.toFixed(1);
+    els.range.disabled = state.sentence.length > 0;
+    els.resetBtn.disabled = state.sentence.length === 0;
+
+    if (state.sentence.length === 0){
+      els.sentenceBox.innerHTML = '<span class="placeholder">The generated sentence will appear here…</span>';
+    } else {
+      var html = state.sentence.map(function(t){
+        return '<span class="token-chip"><span>' + escapeHtml(t.text) + '</span><span class="p">' + t.prob + '%</span></span>';
+      }).join('');
+      if (!isComplete()) html += '<span class="cursor"></span>';
+      els.sentenceBox.innerHTML = html;
+    }
+
+    if (!isComplete()){
+      var opts = currentOptions();
+      var optsHtml = opts.map(function(o){
+        var decClass = o.type !== 'sel' ? ' dec' : '';
+        var flashClass = o.text === state.flashKey ? ' flash' : '';
+        var disabled = o.type !== 'sel' ? 'disabled' : '';
+        return '<button class="opt' + decClass + flashClass + '" ' + disabled + ' data-key="' + escapeHtml(o.text) + '">' +
+          '<span class="bar" style="width:' + o.pct + '%"></span>' +
+          '<span class="row"><span class="txt">' + escapeHtml(o.text) + '</span><span class="pct">' + o.pct.toFixed(1) + '%</span></span>' +
+        '</button>';
+      }).join('');
+
+      els.right.innerHTML =
+
+        '<button class="rand-btn" id="simRandBtn"' + (state.rolling ? ' disabled' : '') + '>🎲 Roll for next token</button>' +
+        '<div class="grid">' + optsHtml + '</div>';
+
+      document.getElementById('simRandBtn').addEventListener('click', randomize);
+      var btns = els.right.querySelectorAll('.opt:not(.dec)');
+      btns.forEach(function(btn){
+        btn.addEventListener('click', function(){
+          var key = btn.getAttribute('data-key');
+          var opt = opts.filter(function(o){ return o.text === key; })[0];
+          if (opt) pick(opt);
+        });
+      });
+    } else {
+      els.right.innerHTML =
+        '<div class="done-panel">' +
+          '<div class="check">✓ sampling finished</div>' +
+          '<div class="final">' + escapeHtml(sentenceText()) + '</div>' +
+          '<button class="again-btn" id="simAgainBtn">Generate another</button>' +
+        '</div>';
+      document.getElementById('simAgainBtn').addEventListener('click', reset);
+    }
+  }
+
+  els.range.addEventListener('input', function(e){
+    state.temperature = parseFloat(e.target.value);
+    render();
+  });
+  els.resetBtn.addEventListener('click', reset);
+
+  els.range.value = state.temperature;
+  render();
+})();
+</script>
+
+<script>
+(function(){
+  // ---- Exercise toggle: click to reveal a solution inside an exercise-list item ----
+  document.addEventListener('click', function(event){
+    var btn = event.target.closest('.exercise-toggle-btn');
+    if (!btn) return;
+    var item = btn.closest('.exercise-toggle');
+    if (!item) return;
+    item.classList.add('open');
+    btn.setAttribute('aria-expanded', 'true');
+  });
+
+  // ---- Reflect toggle: save/edit a free-text answer ----
+  document.querySelectorAll('.reflect-toggle').forEach(function(button){
+    var item = button.closest('.reflect-item');
+    var input = item.querySelector('.reflect-input');
+    var output = item.querySelector('.reflect-output');
+
+    button.addEventListener('click', function(){
+      if (input.hidden){
+        input.hidden = false;
+        output.hidden = true;
+        button.textContent = 'Save reflection';
+        input.focus();
+        return;
+      }
+
+      var text = input.value.trim();
+      if (!text){
+        input.focus();
+        return;
+      }
+
+      output.textContent = text;
+      input.hidden = true;
+      output.hidden = false;
+      button.textContent = 'Edit reflection';
+    });
+  });
+})();
+</script>
+
+</body>
+</html>
