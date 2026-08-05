@@ -278,7 +278,7 @@
   }
 
   .temp-pink{ color: #d936e2; }
-  .temp-blue{ color: #3636e2; }
+  .temp-blue{ color: #6b6baf; }
   .temp-red{ color: #e23636; }
 
   .reflect-item{ margin-top: 16px; width: 100%; }
@@ -961,7 +961,8 @@
     var t = Math.min(2, Math.max(0.1, state.temperature));
     var frac = (t - 0.1) / 1.9;
     var hue = 240 + frac * 120;
-    return 'hsl(' + hue + ', 75%, 55%)';
+    var sat = 30 + frac * 45;
+    return 'hsl(' + hue + ', ' + sat + '%, 55%)';
   }
 
   function escapeHtml(s){
@@ -1009,6 +1010,14 @@
     state.flashKey = null;
     state.temperature = 1;
     els.range.value = 1;
+    render();
+  }
+
+  function again(){
+    state.sentence = [];
+    state.currentNodeId = 'n_root';
+    state.rolling = false;
+    state.flashKey = null;
     render();
   }
 
@@ -1061,7 +1070,7 @@
           '<div class="final">' + escapeHtml(sentenceText()) + '</div>' +
           '<button class="again-btn" id="simAgainBtn">Generate another</button>' +
         '</div>';
-      document.getElementById('simAgainBtn').addEventListener('click', reset);
+      document.getElementById('simAgainBtn').addEventListener('click', again);
     }
   }
 

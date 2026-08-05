@@ -471,14 +471,27 @@ button:disabled {
 }
 
 .takeaways {
-	padding-left: 18px;
+	list-style: none;
+	padding: 0;
 	margin: 0;
 	color: var(--muted);
 	line-height: 1.7;
 }
 
+.takeaways li {
+	display: flex;
+	gap: 10px;
+	align-items: flex-start;
+}
+
 .takeaways li + li {
 	margin-top: 8px;
+}
+
+.takeaways li .check {
+	color: var(--red);
+	font-weight: 700;
+	flex: 0 0 auto;
 }
 
 .reflect-item + .reflect-item {
@@ -672,10 +685,10 @@ button:disabled {
 				<article class="card">
 					<div class="card-title">Key takeaways</div>
 					<ul class="takeaways">
-						<li>AI is strong at tasks with lots of training examples and clear patterns.</li>
-						<li>AI is weak at tasks needing true understanding, reasoning, or current information.</li>
-						<li>"Feels smart" and "is reliable" are not the same thing.</li>
-						<li>Always check AI output for the kinds of tasks in the "struggles" column.</li>
+						<li><span class="check">&#10003;</span><span>AI is strong at tasks with lots of training examples and clear patterns.</span></li>
+						<li><span class="check">&#10003;</span><span>AI is weak at tasks needing true understanding, reasoning, or current information.</span></li>
+						<li><span class="check">&#10003;</span><span>"Feels smart" and "is reliable" are not the same thing.</span></li>
+						<li><span class="check">&#10003;</span><span>Always check AI output for the kinds of tasks in the "struggles" column.</span></li>
 					</ul>
 				</article>
 			</section>
